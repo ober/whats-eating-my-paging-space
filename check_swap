@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+#
+# Script show which processes have paged out
+# -jaimef
+
+get_swap()
+{
+    for pid in $(ps -ao pid=); do
+        if [ ! -r /proc/${pid}/smaps ]; then
+            continue
+        fi
+        sum=$(awk 'BEGIN{sum=0;} ("Swap:" == $1) { sum += $2} END{ print sum }' < /proc/${pid}/smaps 2>-)
+        user=$(ps -o user= ${pid})
+        cmd=$(ps -o cmd= ${pid})
+        start=$(ps -o start= ${pid})
+        if [ $sum -gt 0 ]; then
+            printf "pid: %6s\tswap-bytes: %6s\tuser: %s\tstarted: %5s\tcommand: %s\n" ${pid} ${sum} ${user} "${start}" "${cmd%% *}"
+        fi
+    done
+}
+
+get_swap |sort -rn -k 4
